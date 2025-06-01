@@ -100,8 +100,29 @@ class AiTextExtractorService:
             diff = height - width
             start_x = max(start_x - diff // 2, 0)
             end_x = min(start_x + height, img_array.shape[1])
-        
-        # Crop the image
+        if len(img_array.shape) == 3:
+            cropped = img_array[start_y:end_y, start_x:end_x, :]
+        else:
+            cropped = img_array[start_y:end_y, start_x:end_x]
+            
+        # Force square shape by padding if necessary
+        if cropped.shape[0] != cropped.shape[1]:
+            max_dim = max(cropped.shape[0], cropped.shape[1])
+            if len(img_array.shape) == 3:
+                square = np.zeros((max_dim, max_dim, 3), dtype=cropped.dtype)
+            else:
+                square = np.zeros((max_dim, max_dim), dtype=cropped.dtype)
+            
+            y_offset = (max_dim - cropped.shape[0]) // 2
+            x_offset = (max_dim - cropped.shape[1]) // 2
+            
+            if len(img_array.shape) == 3:
+                square[y_offset:y_offset+cropped.shape[0], 
+                      x_offset:x_offset+cropped.shape[1], :] = cropped
+            else:
+                square[y_offset:y_offset+cropped.shape[0], 
+                      x_offset:x_offset+cropped.shape[1]] = cropped
+            cropped = square # Crop the image
         if len(img_array.shape) == 3:
             cropped = img_array[start_y:end_y, start_x:end_x, :]
         else:
