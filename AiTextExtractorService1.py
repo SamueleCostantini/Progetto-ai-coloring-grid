@@ -279,7 +279,7 @@ class AiTextExtractorService:
                 axes[row, col].set_title(f'Letter {idx+1}')
             plt.tight_layout()
         
-        return letter_images
+        return letter_images, num_rows, num_columns
 
     def predictGridLetters(self, isolated_letters):
         predictions = []
@@ -296,10 +296,10 @@ class AiTextExtractorService:
                 
     def runGridExtraction(self, image_path):
         # Step 1: Isolate letters from the grid
-        isolated_letters = self.isolateLettersFromGrid(image_path)
+        isolated_letters, num_rows, num_columns = self.isolateLettersFromGrid(image_path)
         
         # Step 2: Predict letters from isolated images
         predictions = self.predictGridLetters(isolated_letters)
         
-        return predictions
+        return predictions, num_rows, num_columns
     
