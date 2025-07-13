@@ -1,12 +1,12 @@
 <h1>Il progetto è formato da:</h1>
 <ol>
   <li> Script training del modello : <b>training-modello.ipynb</b> (a posto, testato e funziona con un accuracy del 93%)</li>
-  <li> Modello: <b>letter_reconition_model.h5<b></li>
+  <li> Modello: <b>letter_reconition_model.h5</b></li>
   <li> Microservizio che ha il compito di estrarre lettere dalla griglia: <b>AiTextExtractorService.ph</b> (Il problema si trova qui, nella funzione isolateLettersFromGrid(), non riconosce correttamente la dimensione della griglia, sto usando OpenCv per il
       processing e la gestione dell'immagine, il suo compito è quello di individuare il numero di righe e colonne e isolare le immagini delle lettere mettendole in un array e dandole in pasto al modello che riconosce la lettera, per ora conta male righe e colonne)</li>
   <li> Microservizio per la ricerca: <b>ResearchService.py</b>: contiene le funzioni utile per impostare il problema di ricerca (da terminare)</li>
-  <li> Core del progetto: Main.py racchiude tutte le chiamate e il flusso generale del progetto</li>
-  <li> Per il testing uso le immagini che sono nella directori costum-test </li>
+  <li> Core del progetto: <b>Main.py</b>b> racchiude tutte le chiamate e il flusso generale del progetto</li>
+  <li> Per il testing uso le immagini che sono nella directory costum-test </li>
 </ol>
 
 <h2> Istruzioni </h2>
