@@ -1,6 +1,3 @@
-
-
-
 from PIL import Image
 import numpy as np
 import tensorflow as tf
@@ -21,6 +18,8 @@ class AiTextExtractorService:
         print("Model loaded successfully")
 
     def mapPredictedClassToLetter(self, classValue):
+        if classValue == 15:
+            classValue = 24
         predicted_letter = chr(classValue + ord('a') )
         # Converte la classe in lettera
         print(f"La classe predetta {classValue} corrisponde alla lettera: {predicted_letter}")
@@ -129,7 +128,7 @@ class AiTextExtractorService:
         else:
             cropped = img_array[start_y:end_y, start_x:end_x]
         
-        # Debug visualization
+        # self.verbose: visualization
         if self.verbose:
             plt.figure(figsize=(10, 5))
             plt.subplot(121)
@@ -164,9 +163,10 @@ class AiTextExtractorService:
         img_array = img_array / 255.0
         img_array = 1 - img_array
         
-        # Visualizzo l'immagine processata
-        plt.imshow(img_array, cmap="gray")
-
+        # Visualizzo l'immagine processata (opzionale)
+        if self.verbose:
+            plt.imshow(img_array, cmap="gray")
+            plt.show()
         
         # Reshape per il modello CNN
         img_array = img_array.reshape(1, 28, 28, 1)
@@ -178,129 +178,83 @@ class AiTextExtractorService:
         return self.mapPredictedClassToLetter(predicted_class)
     
     def isolateLettersFromGrid(self, image_path):
-        print("Isolating letters from grid by detecting letters...")
-        # Read image
-        img = cv2.imread(image_path)
-        img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        output_dir = "output"
+        if self.verbose and not os.path.exists(output_dir):
+            os.makedirs(output_dir)
 
-        # Adaptive threshold for better separation in grids
-        binary = cv2.adaptiveThreshold(
-            gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 15, 8
-        )
-        plt.imshow(binary, cmap='gray')
-        # Morphology to clean up noise and connect letter parts
-        kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
-        morph = cv2.morphologyEx(binary, cv2.MORPH_CLOSE, kernel, iterations=2)
+        img = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
+        if img is None:
+            raise FileNotFoundError(f"L'immagine '{image_path}' non è stata trovata.")
 
-        # Find contours (letters)
-        contours, _ = cv2.findContours(morph, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        # Threshold to get binary image
+        _, binary = cv2.threshold(img, 200, 255, cv2.THRESH_BINARY_INV)
 
-        # Filter contours by area and reasonable size
-        min_area = img.shape[0] * img.shape[1] / 3000  # Lower threshold for small letters
-        letter_contours = []
-        for contour in contours:
-            area = cv2.contourArea(contour)
-            x, y, w, h = cv2.boundingRect(contour)
-            if area > min_area and w > 8 and h > 8:
-                letter_contours.append((x, y, w, h))
+        # Detect horizontal and vertical lines
+        horizontal_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (binary.shape[1]//10, 1))
+        vertical_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (1, binary.shape[0]//10))
+        horizontal_lines = cv2.morphologyEx(binary, cv2.MORPH_OPEN, horizontal_kernel, iterations=2)
+        vertical_lines = cv2.morphologyEx(binary, cv2.MORPH_OPEN, vertical_kernel, iterations=2)
+        grid = cv2.add(horizontal_lines, vertical_lines)
 
-        # Sort contours top-to-bottom, then left-to-right
-        letter_contours = sorted(letter_contours, key=lambda b: (b[1], b[0]))
+        # Find intersections
+        intersections = cv2.bitwise_and(horizontal_lines, vertical_lines)
+        coords = cv2.findNonZero(intersections)
+        if coords is None:
+            raise ValueError("No grid intersections found.")
 
-        # Group letters by row (using y coordinate)
-        rows = []
-        row_tolerance = max(10, img.shape[0] // 40)
-        for box in letter_contours:
-            x, y, w, h = box
-            placed = False
-            for row in rows:
-                if abs(row[0][1] - y) < row_tolerance:
-                    row.append(box)
-                    placed = True
-                    break
-            if not placed:
-                rows.append([box])
+        # Cluster intersection points to get unique row/col positions
+        coords = coords[:, 0, :]
+        x_coords = sorted(set([x for x, y in coords]))
+        y_coords = sorted(set([y for x, y in coords]))
 
-        num_rows = len(rows)
-        num_columns = max(len(row) for row in rows) if rows else 0
+        def cluster_positions(positions, threshold=10):
+            clustered = []
+            for p in positions:
+                if not clustered or abs(p - clustered[-1]) > threshold:
+                    clustered.append(p)
+            return clustered
 
-        # If grid detection failed, try to split the image into grid cells
-        if num_rows < 2 or num_columns < 2:
-            # Estimate grid size from image dimensions
-            estimated_rows = 3
-            estimated_cols = 5
-            cell_h = img.shape[0] // estimated_rows
-            cell_w = img.shape[1] // estimated_cols
-            letter_images = []
-            for r in range(estimated_rows):
-                for c in range(estimated_cols):
-                    y1 = r * cell_h
-                    y2 = (r + 1) * cell_h
-                    x1 = c * cell_w
-                    x2 = (c + 1) * cell_w
-                    cell_img = img_rgb[y1:y2, x1:x2]
-                    cropped_letter = self.autoCropLetter(cell_img)
-                    letter_images.append(cropped_letter)
-            num_rows = estimated_rows
-            num_columns = estimated_cols
-        else:
-            # Extract letter images row by row
-            letter_images = []
-            for row in rows:
-                row = sorted(row, key=lambda b: b[0])  # left-to-right
-                for x, y, w, h in row:
-                    letter_img = img_rgb[y:y+h, x:x+w]
-                    cropped_letter = self.autoCropLetter(letter_img)
-                    letter_images.append(cropped_letter)
-                    # Draw rectangle for debug
-                    cv2.rectangle(img_rgb, (x, y), (x+w, y+h), (0, 255, 0), 2)
+        x_coords = cluster_positions(x_coords)
+        y_coords = cluster_positions(y_coords)
 
-        # Show the detected letters
-        if self.verbose:
-            plt.figure(figsize=(15, 5))
-            plt.subplot(121)
-            plt.imshow(img_rgb)
-            plt.title(f'Detected Letters ({num_rows} rows, max {num_columns} columns)')
-            plt.subplot(122)
-            if letter_images:
-                fig, axes = plt.subplots(num_rows, num_columns, figsize=(15, 8))
-                idx = 0
-                for row in range(num_rows):
-                    for col in range(num_columns):
-                        if idx < len(letter_images):
-                            if num_rows == 1:
-                                axes[col].imshow(letter_images[idx])
-                                axes[col].axis('off')
-                                axes[col].set_title(f'Letter {idx+1}')
-                            else:
-                                axes[row, col].imshow(letter_images[idx])
-                                axes[row, col].axis('off')
-                                axes[row, col].set_title(f'Letter {idx+1}')
-                            idx += 1
-                plt.tight_layout()
+        letters = []
+        for row in range(len(y_coords) - 1):
+            for col in range(len(x_coords) - 1):
+                x1, x2 = x_coords[col], x_coords[col + 1]
+                y1, y2 = y_coords[row], y_coords[row + 1]
+                cell = img[y1:y2, x1:x2]
+                # Optional: further crop to letter using your autoCropLetter
+                cell = self.autoCropLetter(cell)
+                letters.append((x1, y1, cell))
+                if self.verbose:
+                    cell_path = os.path.join(output_dir, f"cell_{row}_{col}.png")
+                    cv2.imwrite(cell_path, cell)
 
-        return letter_images, num_rows, num_columns
+        # Sort by row and column (already in order)
+        return letters, len(y_coords) -1 , len(x_coords) - 1
+
 
     def predictGridLetters(self, isolated_letters):
         predictions = []
-        for letter in isolated_letters[1:]:
-            temp_img = Image.fromarray(letter)
+        for letter in isolated_letters:
+            # letter is a tuple: (x, y, image)
+            temp_img = Image.fromarray(letter[2])
             with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as tmp:
                 temp_img.save(tmp.name)
                 result = self.analyzeImage(tmp.name)
                 predictions.append(result)
             os.unlink(tmp.name)  # Clean up the temporary file
-        
+
         print("Predicted letters:", predictions)
         return predictions
                 
     def runGridExtraction(self, image_path):
         # Step 1: Isolate letters from the grid
-        isolated_letters, num_rows, num_columns = self.isolateLettersFromGrid(image_path)
+        isolated_letters, row, col = self.isolateLettersFromGrid(image_path)
         
         # Step 2: Predict letters from isolated images
         predictions = self.predictGridLetters(isolated_letters)
         
-        return predictions, num_rows, num_columns
-    
+        # Optionally, compute rows/cols here if you add that logic
+        # For now, just return predictions and isolated_letters
+        return predictions, row, col

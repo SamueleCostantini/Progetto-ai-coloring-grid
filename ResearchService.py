@@ -135,23 +135,34 @@ class ColorGridProblem(Problem):
     
     def result(self, state, action):
         """
-        Applica l'azione (flood fill) e restituisce il nuovo stato
+        Applica l'azione: sposta l'aspirapolvere (t) su una nuova posizione.
+        La casella su cui si trova diventa del colore originale, la nuova posizione diventa 't'.
         """
         grid = [list(row) for row in state]
         start_pos, new_color = action
-        
-        original_color = grid[start_pos[0]][start_pos[1]]
-        
-        if original_color == new_color:
-            return state  # Nessun cambiamento
-        
-        # Trova tutte le posizioni connesse con lo stesso colore
-        connected_positions = self.get_connected_component(grid, start_pos, original_color)
-        
-        # Cambia il colore di tutte le posizioni connesse
-        for row, col in connected_positions:
-            grid[row][col] = new_color
-        
+
+        # Trova la posizione corrente dell'aspirapolvere ('t')
+        current_t_pos = None
+        for i in range(self.rows):
+            for j in range(self.cols):
+                if grid[i][j] == 't':
+                    current_t_pos = (i, j)
+                    break
+            if current_t_pos:
+                break
+
+        # Se non c'è 't', mettiamo 't' sulla posizione di partenza
+        if not current_t_pos:
+            original_color = grid[start_pos[0]][start_pos[1]]
+            grid[start_pos[0]][start_pos[1]] = 't'
+            return tuple(tuple(row) for row in grid)
+
+        # Ripristina il colore originale dove era 't'
+        grid[current_t_pos[0]][current_t_pos[1]] = new_color
+
+        # Sposta 't' sulla nuova posizione
+        grid[start_pos[0]][start_pos[1]] = 't'
+
         return tuple(tuple(row) for row in grid)
     
     def goal_test(self, state):
