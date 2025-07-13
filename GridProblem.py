@@ -50,11 +50,11 @@ class GridProblem(Problem):
             new_position = (x, y)
 
         # Aggiorna la posizione della testina 'T'
-        # Rimuovi la 'T' dalla vecchia posizione
+        # Rimuovi la 'T' da tutta la griglia
         for i in range(self.rows):
             for j in range(self.cols):
                 if new_grid[i][j] == 'T':
-                    new_grid[i][j] = self.goal_color if (i, j) != (x, y) else new_grid[i][j]
+                    new_grid[i][j] = self.goal_color
         # Metti la 'T' nella nuova posizione
         new_grid[new_position[0]][new_position[1]] = 'T'
         return (tuple("".join(row) for row in new_grid), new_position)

@@ -103,18 +103,44 @@ else:
     print("No UCS solution found.")
 
 # (Optional) Simulate execution of the best plan
-def simulate_plan(initial_state, actions):
+def simulate_plan(initial_state, actions, nameGif):
+    import matplotlib.pyplot as plt
+    import numpy as np
+    from PIL import Image
+    import imageio
+    import os
+
     state = initial_state
-    print("Initial state:")
-    print(state[0])
-    for i, action in enumerate(actions):
+    grids = [state[0]]
+    for action in actions:
         state = gridProblem.result(state, action)
-        print(f"After action {i+1} ({action}):")
-        print(state[0])
+        grids.append(state[0])
+
+    images = []
+    for idx, grid in enumerate(grids):
+        fig, ax = plt.subplots(figsize=(len(grid[0]), len(grid)))
+        ax.axis('off')
+        # Draw grid as table
+        table_data = [[cell for cell in row] for row in grid]
+        ax.table(cellText=table_data, loc='center', cellLoc='center', edges='closed')
+        plt.tight_layout()
+        # Save to temporary PNG
+        fname = f'_sim_grid_{idx}.png'
+        plt.savefig(fname, bbox_inches='tight', pad_inches=0.1)
+        plt.close(fig)
+        images.append(imageio.imread(fname))
+        os.remove(fname)
+
+    # Save as GIF
+    imageio.mimsave(nameGif+'.gif', images, duration=0.8)
+    print('GIF saved as simulation.gif')
 
 # Example: simulate UCS plan
 if ucs_solution:
-    simulate_plan(gridProblem.initial, ucs_solution.solution())
+    simulate_plan(gridProblem.initial, ucs_solution.solution(), 'ucs')
+
+if dfs_solution:
+   simulate_plan(gridProblem.initial, dfs_solution.solution(), 'dfs')
 
 def goal_test(self, state):
     grid, position = state
