@@ -11,7 +11,7 @@
 
 <h2> Istruzioni </h2>
 <p> Per il testing uso due vie, o quella di testare le funzioni in riga di comando pero c'è bisogno di importare tutte le librerie. Per facilitare il lavoro basta incollare questo script nel terminale della cartella del progetto: </p>
-<h3> Script da copiare e incollare nel terminale </h3>
+<h3> mandare il comando "python" poi copiare e incollare nel terminale questo script </h3>
 ----------------------------------------------------------<br>
 from PIL import Image <br>
 import numpy as np <br>
