@@ -22,7 +22,7 @@ import numpy as np
 model = tf.keras.models.load_model('letter_recognition_model.h5')
 
 # %%
-from AiTextExtractorService2 import AiTextExtractorService
+from AiTextExtractorService import AiTextExtractorService
 from ResearchService import ColorGridProblem
 from utils import *
 from search import *
@@ -32,7 +32,7 @@ estrattore = AiTextExtractorService(model, False)
 
 
 # %%
-lettere, num_rows, num_columns = estrattore.runGridExtraction('costum-test/1.png')
+lettere, num_rows, num_columns = estrattore.runGridExtraction('costum-test/5x3.png')
 
 # %%
 print(lettere)

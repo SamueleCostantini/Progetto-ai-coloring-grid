@@ -65,6 +65,8 @@ class AiTextExtractorService:
         # Find contours
         contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         
+        print(f"Found {len(contours)} contours in the image.")
+
         if not contours:
             return img_array
         
@@ -176,112 +178,108 @@ class AiTextExtractorService:
         return self.mapPredictedClassToLetter(predicted_class)
     
     def isolateLettersFromGrid(self, image_path):
+        print("Isolating letters from grid by detecting letters...")
         # Read image
         img = cv2.imread(image_path)
         img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        
-        # Threshold the image
-        _, binary = cv2.threshold(gray, 127, 255, cv2.THRESH_BINARY_INV)
-        
-        # Find contours
-        contours, hierarchy = cv2.findContours(binary, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
-        
-        # Sort contours by area and get the largest ones (cells)
-        contours = sorted(contours, key=cv2.contourArea, reverse=True)
-        cell_contours = []
-        
-        # Filter contours by area to get only the cells
-        min_area = img.shape[0] * img.shape[1] / (4 * 2 * 2)  # Approximate minimum cell area
+
+        # Adaptive threshold for better separation in grids
+        binary = cv2.adaptiveThreshold(
+            gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 15, 8
+        )
+        plt.imshow(binary, cmap='gray')
+        # Morphology to clean up noise and connect letter parts
+        kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
+        morph = cv2.morphologyEx(binary, cv2.MORPH_CLOSE, kernel, iterations=2)
+
+        # Find contours (letters)
+        contours, _ = cv2.findContours(morph, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+        # Filter contours by area and reasonable size
+        min_area = img.shape[0] * img.shape[1] / 3000  # Lower threshold for small letters
+        letter_contours = []
         for contour in contours:
             area = cv2.contourArea(contour)
-            if area > min_area:
-                x, y, w, h = cv2.boundingRect(contour)
-                # Filter out the outer border if present
-                if w < img.shape[1] * 0.9 and h < img.shape[0] * 0.9:
-                    cell_contours.append((x, y, w, h))
-        
-        # Calculate average cell dimensions
-        if cell_contours:
-            avg_width = sum(w for _, _, w, _ in cell_contours) / len(cell_contours)
-            avg_height = sum(h for _, _, _, h in cell_contours) / len(cell_contours)
-            
-            # Group cells by their y-coordinate using the average height as tolerance
-            y_coordinates = [y for (x, y, w, h) in cell_contours]
-            x_coordinates = [x for (x, y, w, h) in cell_contours]
-            
-            # Group cells that are within half average height of each other
-            y_groups = []
-            current_group = [y_coordinates[0]]
-            for y in sorted(y_coordinates[1:]):
-                if abs(y - current_group[0]) < avg_height/2:
-                    current_group.append(y)
-                else:
-                    y_groups.append(current_group)
-                    current_group = [y]
-            y_groups.append(current_group)
-            num_rows = len(y_groups)
-            
-            # Similar grouping for x-coordinates
-            x_groups = []
-            current_group = [x_coordinates[0]]
-            for x in sorted(x_coordinates[1:]):
-                if abs(x - current_group[0]) < avg_width/2:
-                    current_group.append(x)
-                else:
-                    x_groups.append(current_group)
-                    current_group = [x]
-            x_groups.append(current_group)
-            num_columns = len(x_groups)
-            
-            # Sort cells by position using the grouped coordinates
-            cell_contours.sort(key=lambda x: (y_groups.index([g for g in y_groups if x[1] in g][0]), 
-                                            x_coordinates.index(x[0])))
-            
-        else:
-            num_rows = 0
-            num_columns = 0
-            print("No grid cells detected")
+            x, y, w, h = cv2.boundingRect(contour)
+            if area > min_area and w > 8 and h > 8:
+                letter_contours.append((x, y, w, h))
 
-        # Extract and process each cell
-        letter_images = []
-        for x, y, w, h in cell_contours:
-            # Extract cell
-            cell = img_rgb[y:y+h, x:x+w]
-            
-            # Process the cell using existing autoCropLetter function
-            cropped_letter = self.autoCropLetter(cell)
-            letter_images.append(cropped_letter)
-            
-            # Visualize the detected cell
-            cv2.rectangle(img_rgb, (x, y), (x+w, y+h), (0, 255, 0), 2)
-        
-        # Show the detected grid
+        # Sort contours top-to-bottom, then left-to-right
+        letter_contours = sorted(letter_contours, key=lambda b: (b[1], b[0]))
+
+        # Group letters by row (using y coordinate)
+        rows = []
+        row_tolerance = max(10, img.shape[0] // 40)
+        for box in letter_contours:
+            x, y, w, h = box
+            placed = False
+            for row in rows:
+                if abs(row[0][1] - y) < row_tolerance:
+                    row.append(box)
+                    placed = True
+                    break
+            if not placed:
+                rows.append([box])
+
+        num_rows = len(rows)
+        num_columns = max(len(row) for row in rows) if rows else 0
+
+        # If grid detection failed, try to split the image into grid cells
+        if num_rows < 2 or num_columns < 2:
+            # Estimate grid size from image dimensions
+            estimated_rows = 3
+            estimated_cols = 5
+            cell_h = img.shape[0] // estimated_rows
+            cell_w = img.shape[1] // estimated_cols
+            letter_images = []
+            for r in range(estimated_rows):
+                for c in range(estimated_cols):
+                    y1 = r * cell_h
+                    y2 = (r + 1) * cell_h
+                    x1 = c * cell_w
+                    x2 = (c + 1) * cell_w
+                    cell_img = img_rgb[y1:y2, x1:x2]
+                    cropped_letter = self.autoCropLetter(cell_img)
+                    letter_images.append(cropped_letter)
+            num_rows = estimated_rows
+            num_columns = estimated_cols
+        else:
+            # Extract letter images row by row
+            letter_images = []
+            for row in rows:
+                row = sorted(row, key=lambda b: b[0])  # left-to-right
+                for x, y, w, h in row:
+                    letter_img = img_rgb[y:y+h, x:x+w]
+                    cropped_letter = self.autoCropLetter(letter_img)
+                    letter_images.append(cropped_letter)
+                    # Draw rectangle for debug
+                    cv2.rectangle(img_rgb, (x, y), (x+w, y+h), (0, 255, 0), 2)
+
+        # Show the detected letters
         if self.verbose:
             plt.figure(figsize=(15, 5))
             plt.subplot(121)
             plt.imshow(img_rgb)
-            plt.title(f'Detected Grid Cells ({num_rows}x{num_columns})')
-            
-            # Show all isolated letters
+            plt.title(f'Detected Letters ({num_rows} rows, max {num_columns} columns)')
             plt.subplot(122)
-        
-        if letter_images:
-            fig, axes = plt.subplots(num_rows, num_columns, figsize=(15, 8))
-            for idx, letter_img in enumerate(letter_images[:num_rows*num_columns]):
-                row = idx // num_columns
-                col = idx % num_columns
-            if num_rows == 1:
-                axes[col].imshow(letter_img)
-                axes[col].axis('off')
-                axes[col].set_title(f'Letter {idx+1}')
-            else:
-                axes[row, col].imshow(letter_img)
-                axes[row, col].axis('off')
-                axes[row, col].set_title(f'Letter {idx+1}')
-            if self.verbose:
+            if letter_images:
+                fig, axes = plt.subplots(num_rows, num_columns, figsize=(15, 8))
+                idx = 0
+                for row in range(num_rows):
+                    for col in range(num_columns):
+                        if idx < len(letter_images):
+                            if num_rows == 1:
+                                axes[col].imshow(letter_images[idx])
+                                axes[col].axis('off')
+                                axes[col].set_title(f'Letter {idx+1}')
+                            else:
+                                axes[row, col].imshow(letter_images[idx])
+                                axes[row, col].axis('off')
+                                axes[row, col].set_title(f'Letter {idx+1}')
+                            idx += 1
                 plt.tight_layout()
-        
+
         return letter_images, num_rows, num_columns
 
     def predictGridLetters(self, isolated_letters):
