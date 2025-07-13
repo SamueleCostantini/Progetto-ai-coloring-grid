@@ -102,6 +102,8 @@ if ucs_solution:
 else:
     print("No UCS solution found.")
 
+
+
 # (Optional) Simulate execution of the best plan
 def simulate_plan(initial_state, actions, nameGif):
     import matplotlib.pyplot as plt
@@ -129,7 +131,7 @@ def simulate_plan(initial_state, actions, nameGif):
         plt.savefig(fname, bbox_inches='tight', pad_inches=0.1)
         plt.close(fig)
         images.append(imageio.imread(fname))
-        os.remove(fname)
+        #os.remove(fname)
 
     # Save as GIF
     imageio.mimsave(nameGif+'.gif', images, duration=0.8)

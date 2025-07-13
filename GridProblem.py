@@ -1,4 +1,3 @@
-
 from search import Problem
 
 
@@ -17,19 +16,19 @@ class GridProblem(Problem):
         rows, cols = self.rows, self.cols  # Righe e colonne
 
         # Movimenti nella griglia
-        if x > 0: actions.append('Up')
-        if x < rows - 1: actions.append('Down')
-        if y > 0: actions.append('Left')
-        if y < cols - 1: actions.append('Right')
+        if x > 0:
+            actions.append('Up')
+        if x < rows - 1:
+            actions.append('Down')
+        if y > 0:
+            actions.append('Left')
+        if y < cols - 1:
+            actions.append('Right')
 
         # Azione di colorazione solo se la cella non è colorata e non è la posizione iniziale
         if grid[x][y] != self.goal_color and (x, y) != self.start_position:
             actions.append('Paint')  # Aggiungi l'azione di pittura
 
-        # Impedisci di rimanere nella stessa posizione se tutte le mosse sono possibili
-        # Se non ci sono movimenti possibili, non aggiungere nessuna azione
-        # Se la testina è nella posizione iniziale e tutte le celle sono colorate, non aggiungere movimenti
-        # (questo è gestito dalla goal_test)
         return actions
 
     def result(self, state, action):
@@ -48,15 +47,16 @@ class GridProblem(Problem):
         elif action == 'Paint':
             new_grid[x][y] = self.goal_color
             new_position = (x, y)
+        else:
+            new_position = (x, y)
 
-        # Aggiorna la posizione della testina 'T'
         # Rimuovi la 'T' da tutta la griglia
         for i in range(self.rows):
             for j in range(self.cols):
                 if new_grid[i][j] == 'T':
                     new_grid[i][j] = self.goal_color
         # Metti la 'T' nella nuova posizione
-        new_grid[new_position[0]][new_position[1]] = 'T'
+        new_grid[new_position[0]][new_position[0]] = 'T'
         return (tuple("".join(row) for row in new_grid), new_position)
 
     def goal_test(self, state):
