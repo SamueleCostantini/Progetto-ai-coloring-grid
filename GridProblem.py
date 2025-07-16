@@ -77,3 +77,18 @@ class GridProblem(Problem):
             return c + self.color_costs[color_index]
         else:
             return c
+
+    # All'interno della tua classe GridProblem
+
+    def h(self, node):   #Euristica per la ricerce
+    
+       grid, _ = node.state
+       uncolored_cells = 0
+       # Itera su ogni cella della griglia
+       for r in range(self.rows):
+           for c in range(self.cols):
+               # Conta la cella solo se non è la posizione iniziale e non ha il colore obiettivo
+               if (r, c) != self.start_position and grid[r][c] != self.goal_color:
+                   uncolored_cells += 1
+       return uncolored_cells
+    
