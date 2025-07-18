@@ -28,7 +28,7 @@ from utils import *
 from search import *
 
 # %%
-estrattore = AiTextExtractorService(model, False)
+estrattore = AiTextExtractorService(model, True)
 
 #estrattore.analyzeImage('output_letters/letter_1_3.png')
 
@@ -38,37 +38,34 @@ print(letters)
 print(rows)
 print(cols)
 
-"""Converte array 1D in griglia 2D."""
 if len(letters) != rows * cols:
-    raise ValueError(f"Array length {len(letters)} doesn't match grid size {rows}x{cols}")
+    raise ValueError(f"Lunghezza array {len(letters)} non coincide con la dimensione della {rows}x{cols}")
 
 grid = []
 for i in range(rows):
     row = letters[i * cols:(i + 1) * cols]
-    # Convert row (list of single-character strings) to a string
+    # Converte la riga in stringa perche GridProblem si aspetta tuple di stringhe
     grid.append("".join(row))
 
-# Now grid is a list of strings, convert to tuple for hashability
 initial_state = (tuple(grid), (0, 0))
 gridProblem = GridProblem(
     initial=initial_state,
     goal_color='b',
-    start_position=(0, 0),  # <-- also use tuple here
-    color_costs=[1,1,1],
+    start_position=(0, 0),
+    color_costs=[3,2,1], # costi colori ordine g, y, b
     rows=rows,
     cols=cols
 )
-    
-# La tua griglia di esempio
 
 initial_grid = grid
 
 print(grid)
 
-# Run depth-first search on the grid problem
+# Esegue le varie ricerche
+
 solution = depth_first_graph_search(gridProblem)
 
-# Print the solution path and steps
+# Print andamento della ricerca e soluzione
 if solution:
     print("Solution found!")
     steps = []
@@ -105,7 +102,7 @@ else:
 
 
 
-# (Optional) Simulate execution of the best plan
+# Simula l'esecuzione del piano migliore
 def simulate_plan(initial_state, actions, nameGif):
     import matplotlib.pyplot as plt
     import numpy as np
@@ -123,22 +120,22 @@ def simulate_plan(initial_state, actions, nameGif):
     for idx, grid in enumerate(grids):
         fig, ax = plt.subplots(figsize=(len(grid[0]), len(grid)))
         ax.axis('off')
-        # Draw grid as table
+        # Disegna la tabella della griglia
         table_data = [[cell for cell in row] for row in grid]
         ax.table(cellText=table_data, loc='center', cellLoc='center', edges='closed')
         plt.tight_layout()
-        # Save to temporary PNG
+        # Salva in PNG temporaneo
         fname = f'_sim_grid_{idx}.png'
         plt.savefig(fname, bbox_inches='tight', pad_inches=0.1)
         plt.close(fig)
         images.append(imageio.imread(fname))
         #os.remove(fname)
 
-    # Save as GIF
+    # Salva la GIF
     imageio.mimsave(nameGif+'.gif', images, duration=0.8)
     print('GIF saved as simulation.gif')
 
-# Example: simulate UCS plan
+# Simulazione del piano per DFS e UCS
 if ucs_solution:
     simulate_plan(gridProblem.initial, ucs_solution.solution(), 'ucs')
 
@@ -147,13 +144,13 @@ if dfs_solution:
 
 def goal_test(self, state):
     grid, position = state
-    # All cells except the start must be goal_color, and only one 'T' at start
+    # Verifica che tutte le celle siano colorate e che la testina sia nella posizione iniziale
     is_at_start = position == self.start_position
     all_colored = all(
         (cell == self.goal_color or cell == 'T')
         for row in grid for cell in row
     )
-    # Only one 'T' in the grid, and at the start position
+    # Controlla che ci sia solo una 'T' e che sia nella posizione iniziale
     t_count = sum(cell == 'T' for row in grid for cell in row)
     t_at_start = grid[self.start_position[0]][self.start_position[1]] == 'T'
     return all_colored and is_at_start and t_count == 1 and t_at_start

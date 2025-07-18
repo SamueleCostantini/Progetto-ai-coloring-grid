@@ -1,5 +1,5 @@
 from search import Problem
-
+# Converte la griglia 2D in un formato utilizzabile per il problema di ricerca
 
 class GridProblem(Problem):
     def __init__(self, initial, goal_color, start_position, color_costs, rows, cols):  # Inizializza il problema
@@ -50,12 +50,12 @@ class GridProblem(Problem):
         else:
             new_position = (x, y)
 
-        # Rimuovi la 'T' da tutta la griglia
+        # Rimuove la 'T' da tutta la griglia
         for i in range(self.rows):
             for j in range(self.cols):
                 if new_grid[i][j] == 'T':
                     new_grid[i][j] = self.goal_color
-        # Metti la 'T' nella nuova posizione
+        # Mette la 'T' nella nuova posizione
         new_grid[new_position[0]][new_position[0]] = 'T'
         return (tuple("".join(row) for row in new_grid), new_position)
 
@@ -78,10 +78,8 @@ class GridProblem(Problem):
         else:
             return c
 
-    # All'interno della tua classe GridProblem
-
     def h(self, node):   #Euristica per la ricerce
-    
+       # Calcola l'euristica come il numero di celle non colorate con il colore goal
        grid, _ = node.state
        uncolored_cells = 0
        # Itera su ogni cella della griglia

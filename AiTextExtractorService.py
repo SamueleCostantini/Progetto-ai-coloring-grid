@@ -1,22 +1,23 @@
-from PIL import Image
-import numpy as np
-import tensorflow as tf
-import matplotlib.pyplot as plt
-import cv2
-import tempfile
-import os
+from PIL import Image # Libreria per la manipolazione delle immagini
+import numpy as np # Libreria per il calcolo numerico
+import tensorflow as tf # Libreria per il machine learning
+import matplotlib.pyplot as plt # Libreria per la visualizzazione dei dati
+import cv2 # Libreria per computer vision
+import tempfile # Libreria per la gestione di file temporanei
+import os # Libreria per la gestione dei file e delle directory
 
-
+# Classe service che contiene metodi per utili l'estrazione delle lettere dall'immagine
 class AiTextExtractorService:
     
-    verbose = False
+    verbose = False # Per debug
     model = None
 
     def __init__(self, model, verbose):
-        self.model = model
+        self.model = model # Modello usato per le predizioni
         self.verbose = verbose
         print("Model loaded successfully")
 
+    # Metodo per il mapping delle classi e le lettere
     def mapPredictedClassToLetter(self, classValue):
         if classValue == 15:
             classValue = 24
@@ -25,15 +26,16 @@ class AiTextExtractorService:
         print(f"La classe predetta {classValue} corrisponde alla lettera: {predicted_letter}")
         return predicted_letter
 
+    # Metodo per rimuovere un range di colori da un'immagine
     def removeColorRange(self, img_array, start_hex, end_hex):
-        # Convert hex to RGB
-        start_rgb = tuple(int(start_hex.lstrip('#')[i:i+2], 16) for i in (0, 2, 4))
+        # Converto i valori esadecimali in RGB
+        start_rgb = tuple(int(start_hex.lstrip('#')[i:i+2], 16) for i in (0, 2, 4)) 
         end_rgb = tuple(int(end_hex.lstrip('#')[i:i+2], 16) for i in (0, 2, 4))
         
-        # Create mask for pixels in range
+        # Crea una maschera per i pixel che rientrano nel range di colore
         mask = np.ones_like(img_array[..., 0], dtype=bool)
         
-        for i in range(3):  # For each RGB channel
+        for i in range(3):
             channel_mask = (img_array[..., i] >= min(start_rgb[i], end_rgb[i]))
             channel_mask &= (img_array[..., i] <= max(start_rgb[i], end_rgb[i]))
             mask &= channel_mask
@@ -45,90 +47,72 @@ class AiTextExtractorService:
         return filtered_array
 
     def autoCropLetter(self, img_array):
-        """
-        Automatically crops the image array to focus on a single letter in a square shape
-        Args:
-            img_array: numpy array of the image
-        Returns:
-            cropped square numpy array
-        """
-        # Convert to grayscale if image is RGB
+       
+        # Converte in scala di grigi se l'immagine è RGB
         if len(img_array.shape) == 3:
             gray = cv2.cvtColor(img_array, cv2.COLOR_RGB2GRAY)
         else:
             gray = img_array.copy()
         
-        # Apply thresholding
+        # Applica thresholding
         _, binary = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
         
-        # Find contours
+        # Trova i contorni del box della lettera
         contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         
-        print(f"Found {len(contours)} contours in the image.")
+        if self.verbose:
+            print(f"Found {len(contours)} contours in the image.")
 
         if not contours:
             return img_array
         
-        # Find largest contour (assumed to be the letter)
+        # Trova il contorno più grande
         largest_contour = max(contours, key=cv2.contourArea)
         x, y, w, h = cv2.boundingRect(largest_contour)
         
-        # Find center of the letter
+        # Trova il centro della lettera
         center_x = x + w // 2
         center_y = y + h // 2
         
-        # Calculate square size (use the larger dimension plus padding)
+        # Calcola la grandezza del quadrato, contorno maggiore + un padding personalizzato
         square_size = max(w, h)
         padding = int(square_size * 0.2)  # 20% padding
-        square_size += 2 * padding  # Add padding to both sides
+        square_size += 2 * padding  # Aggiungi padding a entrambi i lati
         
-        # Calculate square bounds from center
+        # Calcola i limiti del quadrato dal centro
         half_size = square_size // 2
         start_x = max(center_x - half_size, 0)
         start_y = max(center_y - half_size, 0)
         end_x = min(center_x + half_size, img_array.shape[1])
         end_y = min(center_y + half_size, img_array.shape[0])
         
-        # Ensure square dimensions by adjusting bounds if near image edges
+        # Assicuro che il contorno sia equilatero per passare al modello un immagine quadrata
         width = end_x - start_x
         height = end_y - start_y
         if width > height:
             diff = width - height
             start_y = max(start_y - diff // 2, 0)
             end_y = min(start_y + width, img_array.shape[0])
+
         elif height > width:
             diff = height - width
             start_x = max(start_x - diff // 2, 0)
             end_x = min(start_x + height, img_array.shape[1])
-        if len(img_array.shape) == 3:
-            cropped = img_array[start_y:end_y, start_x:end_x, :]
-        else:
-            cropped = img_array[start_y:end_y, start_x:end_x]
-            
-        # Force square shape by padding if necessary
-        if cropped.shape[0] != cropped.shape[1]:
-            max_dim = max(cropped.shape[0], cropped.shape[1])
-            if len(img_array.shape) == 3:
-                square = np.zeros((max_dim, max_dim, 3), dtype=cropped.dtype)
-            else:
-                square = np.zeros((max_dim, max_dim), dtype=cropped.dtype)
-            
-            y_offset = (max_dim - cropped.shape[0]) // 2
-            x_offset = (max_dim - cropped.shape[1]) // 2
-            
-            if len(img_array.shape) == 3:
-                square[y_offset:y_offset+cropped.shape[0], 
-                      x_offset:x_offset+cropped.shape[1], :] = cropped
-            else:
-                square[y_offset:y_offset+cropped.shape[0], 
-                      x_offset:x_offset+cropped.shape[1]] = cropped
-            cropped = square # Crop the image
-        if len(img_array.shape) == 3:
-            cropped = img_array[start_y:end_y, start_x:end_x, :]
-        else:
-            cropped = img_array[start_y:end_y, start_x:end_x]
         
-        # self.verbose: visualization
+        cropped = img_array[start_y:end_y, start_x:end_x]
+            
+        # Aumento il padding se necessario per avere un'immagine quadrata
+        # Faccio un ulteriore controllo per assicurarmi che l'immagine sia quadrata
+        if cropped.shape[0] != cropped.shape[1]: #se l'altezza è diversa dalla larghezza
+            max_dim = max(cropped.shape[0], cropped.shape[1])
+            
+            square = np.zeros((max_dim, max_dim), dtype=cropped.dtype)
+
+            cropped = square # ritaglia l'immagine
+
+            cropped = img_array[start_y:end_y, start_x:end_x] #immagine quaddrata della lettera
+        
+        # Per debug
         if self.verbose:
             plt.figure(figsize=(10, 5))
             plt.subplot(121)
@@ -142,24 +126,27 @@ class AiTextExtractorService:
         return cropped
         
     def analyzeImage(self, image_path):
-    # Carica l'immagine come RGB per mantenere tutti i dettagli
+        # Metodo che raggruppa tutte i metodi scritti prima
+        # Serve solo per analizzare 1 singola lettera
+        # Carica l'immagine come RGB per mantenere tutti i dettagli
         img = Image.open(image_path).convert("RGB")
-        img_array = np.array(img)
+        img_array = np.array(img) # Convverto l'immagine in un array con numpy
         
-        # Prima fase: ritaglio la lettera
+        # Ritaglio la lettera
         cropped_array = self.autoCropLetter(img_array)
         
-        # Seconda fase: converto in grayscale dopo il ritaglio
+        # Converto in grayscale dopo il ritaglio
         if len(cropped_array.shape) == 3:
             gray_img = Image.fromarray(cropped_array).convert("L")
         else:
             gray_img = Image.fromarray(cropped_array)
         
-        # Terza fase: ridimensiono a 28x28
+        # Ridimensiono a 28x28 per il modello
         resized_img = gray_img.resize((28, 28))
         
         # Converto in array e normalizzo
         img_array = np.array(resized_img)
+        # Normalizzazione dell'immagine
         img_array = img_array / 255.0
         img_array = 1 - img_array
         
@@ -175,9 +162,17 @@ class AiTextExtractorService:
         prediction = self.model.predict(img_array)
         predicted_class = np.argmax(prediction)
         
+        # Ritorna la lettera predetta
         return self.mapPredictedClassToLetter(predicted_class)
     
     def isolateLettersFromGrid(self, image_path):
+        
+        # Metodo per isolare tutte le lettere da una griglia
+        # L'idea è isolare le singole lettere analizzando i contorni con OpenCV 
+        # e di ritornare un array di tuple (x, y, letter_image) da passare alla 
+        # funzione predictGridLetters per le predizioni che scandalgia l'array e da in pasto
+        # l'immagine ad analyzeImage che esegue il preprocessing e la predizione
+
         output_dir = "output"
         if self.verbose and not os.path.exists(output_dir):
             os.makedirs(output_dir)
@@ -186,27 +181,31 @@ class AiTextExtractorService:
         if img is None:
             raise FileNotFoundError(f"L'immagine '{image_path}' non è stata trovata.")
 
-        # Threshold to get binary image
+        # Threshold
         _, binary = cv2.threshold(img, 200, 255, cv2.THRESH_BINARY_INV)
 
-        # Detect horizontal and vertical lines
+        # Individua linee orizzontali e verticali
         horizontal_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (binary.shape[1]//10, 1))
         vertical_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (1, binary.shape[0]//10))
         horizontal_lines = cv2.morphologyEx(binary, cv2.MORPH_OPEN, horizontal_kernel, iterations=2)
         vertical_lines = cv2.morphologyEx(binary, cv2.MORPH_OPEN, vertical_kernel, iterations=2)
         grid = cv2.add(horizontal_lines, vertical_lines)
-
-        # Find intersections
+        if self.verbose:
+            plt.imshow(grid, cmap='gray')
+        
+        # Trova intersezioni
         intersections = cv2.bitwise_and(horizontal_lines, vertical_lines)
         coords = cv2.findNonZero(intersections)
         if coords is None:
-            raise ValueError("No grid intersections found.")
+            raise ValueError("Griglia non individuata")
 
-        # Cluster intersection points to get unique row/col positions
+        # Individua le coordinate uniche delle intersezioni
         coords = coords[:, 0, :]
         x_coords = sorted(set([x for x, y in coords]))
         y_coords = sorted(set([y for x, y in coords]))
 
+        # Funzione per raggruppare le posizioni in cluster
+        # per evitare di avere posizioni troppo vicine tra loro
         def cluster_positions(positions, threshold=10):
             clustered = []
             for p in positions:
@@ -217,44 +216,50 @@ class AiTextExtractorService:
         x_coords = cluster_positions(x_coords)
         y_coords = cluster_positions(y_coords)
 
+        # Con le coordinate salvate estraggo le lettere
         letters = []
         for row in range(len(y_coords) - 1):
             for col in range(len(x_coords) - 1):
+                # Estrae la posizione del box dalle coordinate estrapolate prima
                 x1, x2 = x_coords[col], x_coords[col + 1]
                 y1, y2 = y_coords[row], y_coords[row + 1]
                 cell = img[y1:y2, x1:x2]
-                # Optional: further crop to letter using your autoCropLetter
+                # Scontorna l'immagine con autoCropLetter
                 cell = self.autoCropLetter(cell)
                 letters.append((x1, y1, cell))
                 if self.verbose:
                     cell_path = os.path.join(output_dir, f"cell_{row}_{col}.png")
                     cv2.imwrite(cell_path, cell)
 
-        # Sort by row and column (already in order)
+        # Restituisce le lettere e le dimensioni della griglia, righe e colonne che serviranno
+        # al problema per individuare le azioni possibili 
         return letters, len(y_coords) -1 , len(x_coords) - 1
 
 
     def predictGridLetters(self, isolated_letters):
         predictions = []
         for letter in isolated_letters:
-            # letter is a tuple: (x, y, image)
+            # la lettera è una tupla (x, y, letter_image)
             temp_img = Image.fromarray(letter[2])
             with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as tmp:
                 temp_img.save(tmp.name)
                 result = self.analyzeImage(tmp.name)
                 predictions.append(result)
-            os.unlink(tmp.name)  # Clean up the temporary file
+            if self.verbose == False:
+                os.unlink(tmp.name)  
 
-        print("Predicted letters:", predictions)
+        print("Lettere predette:", predictions)
+        if self.verbose:
+            print("Array coordinate delle lettere:", letter)
+
         return predictions
                 
     def runGridExtraction(self, image_path):
-        # Step 1: Isolate letters from the grid
+        # Unisce tutti i metodi
         isolated_letters, row, col = self.isolateLettersFromGrid(image_path)
         
-        # Step 2: Predict letters from isolated images
+        # Esegue le predizioni
         predictions = self.predictGridLetters(isolated_letters)
         
-        # Optionally, compute rows/cols here if you add that logic
-        # For now, just return predictions and isolated_letters
+        #restituisce le lettere predette e le dimensioni della griglia
         return predictions, row, col
