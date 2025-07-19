@@ -122,6 +122,7 @@ class AiTextExtractorService:
             plt.imshow(cropped, cmap='gray' if len(cropped.shape) == 2 else None)
             plt.title(f'Cropped square {cropped.shape[0]}x{cropped.shape[1]}')
             plt.show()
+           
         
         return cropped
         
@@ -178,11 +179,18 @@ class AiTextExtractorService:
             os.makedirs(output_dir)
 
         img = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
+        
+        if self.verbose:
+            cv2.imwrite(os.path.join(output_dir, "original_image_gray.png"), img)
+
         if img is None:
             raise FileNotFoundError(f"L'immagine '{image_path}' non è stata trovata.")
 
         # Threshold
         _, binary = cv2.threshold(img, 200, 255, cv2.THRESH_BINARY_INV)
+
+        if self.verbose:
+            plt.savefig(os.path.join(output_dir, "binary_image.png"))
 
         # Individua linee orizzontali e verticali
         horizontal_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (binary.shape[1]//10, 1))
@@ -192,6 +200,7 @@ class AiTextExtractorService:
         grid = cv2.add(horizontal_lines, vertical_lines)
         if self.verbose:
             plt.imshow(grid, cmap='gray')
+            plt.savefig(os.path.join(output_dir, "grid.png"))
         
         # Trova intersezioni
         intersections = cv2.bitwise_and(horizontal_lines, vertical_lines)
