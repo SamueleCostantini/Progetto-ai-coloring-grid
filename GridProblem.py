@@ -2,14 +2,29 @@ from search import Problem
 # Converte la griglia 2D in un formato utilizzabile per il problema di ricerca
 
 class GridProblem(Problem):
-    def __init__(self, initial, goal_color, start_position, color_costs, rows, cols):  # Inizializza il problema
+    def __init__(self, initial, goal_color, start_position, color_costs, rows, cols, letters):  # Inizializza il problema
         super().__init__(initial)
+        
+        def most_common_color():
+            colors = { 'b':0, 'g':0, 'y':0 }
+            for letter in letters:
+                    colors[letter] += 1
+            return max(colors, key=colors.get)
+
         self.goal_color = goal_color  # Colore obiettivo
+        if goal_color == 'a': # a sta per automatico, assegna il colore più comune senza considerare i costi
+            self.goal_color = most_common_color() 
+            
+        print(f"Goal color assegnato: {self.goal_color}")
         self.start_position = start_position  # Posizione iniziale
         self.color_costs = color_costs  # Costi dei colori
         self.rows = rows  # Numero di righe
         self.cols = cols  # Numero di colonne 
 
+    
+    
+
+        
     def actions(self, state):  # Definisce le azioni possibili
         actions = []  # Lista delle azioni possibili
         grid, (x, y) = state  # Griglia e posizione corrente

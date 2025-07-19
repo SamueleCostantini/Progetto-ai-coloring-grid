@@ -50,11 +50,12 @@ for i in range(rows):
 initial_state = (tuple(grid), (0, 0))
 gridProblem = GridProblem(
     initial=initial_state,
-    goal_color='b',
+    goal_color='a',
     start_position=(0, 0),
     color_costs=[3,2,1], # costi colori ordine g, y, b
     rows=rows,
-    cols=cols
+    cols=cols,
+    letters=letters
 )
 
 initial_grid = grid
