@@ -17,7 +17,7 @@ import os
 
 import numpy as np
 
-
+output_dir = 'output'
 # %%
 model = tf.keras.models.load_model('letter_recognition_model.h5')
 
@@ -28,7 +28,7 @@ from utils import *
 from search import *
 
 # %%
-estrattore = AiTextExtractorService(model, True)
+estrattore = AiTextExtractorService(model, False)
 
 #estrattore.analyzeImage('output_letters/letter_1_3.png')
 
@@ -126,14 +126,14 @@ def simulate_plan(initial_state, actions, nameGif):
         ax.table(cellText=table_data, loc='center', cellLoc='center', edges='closed')
         plt.tight_layout()
         # Salva in PNG temporaneo
-        fname = f'_sim_grid_{idx}.png'
+        fname = f'{output_dir}/_sim_grid_{idx}.png'
         plt.savefig(fname, bbox_inches='tight', pad_inches=0.1)
         plt.close(fig)
         images.append(imageio.imread(fname))
         #os.remove(fname)
 
     # Salva la GIF
-    imageio.mimsave(nameGif+'.gif', images, duration=0.8)
+    imageio.mimsave(f'{output_dir}/{nameGif}.gif', images, duration=0.8)
     print('GIF saved as simulation.gif')
 
 # Simulazione del piano per DFS e UCS
@@ -203,13 +203,13 @@ def simulate_plan(initial_state, actions, nameGif):
         ax.table(cellText=table_data, loc='center', cellLoc='center', edges='closed')
         plt.tight_layout()
         
-        fname = f'_sim_grid_{idx}.png'
+        fname = f'{output_dir}/_sim_grid_{idx}.png'
         plt.savefig(fname, bbox_inches='tight', pad_inches=0.1)
         plt.close(fig)
         images.append(imageio.imread(fname))
         os.remove(fname)
 
-    imageio.mimsave(f'{nameGif}.gif', images, duration=0.8)
+    imageio.mimsave(f'{output_dir}/{nameGif}.gif', images, duration=0.8)
     print(f'GIF salvato come {nameGif}.gif')
 
 # Esegui la simulazione per A* e UCS se è stata trovata una soluzione

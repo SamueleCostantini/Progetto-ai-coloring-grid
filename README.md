@@ -1,46 +1,71 @@
-<h1>Il progetto è formato da:</h1>
-<ol>
-  <li> Script training del modello : <b>training-modello.ipynb</b> (a posto, testato e funziona con un accuracy del 93%)</li>
-  <li> Modello: <b>letter_reconition_model.h5</b></li>
-  <li> Microservizio che ha il compito di estrarre lettere dalla griglia: <b>AiTextExtractorService.ph</b> (Il problema si trova qui, nella funzione isolateLettersFromGrid(), non riconosce correttamente la dimensione della griglia, sto usando OpenCv per il
-      processing e la gestione dell'immagine, il suo compito è quello di individuare il numero di righe e colonne e isolare le immagini delle lettere mettendole in un array e dandole in pasto al modello che riconosce la lettera, per ora conta male righe e colonne)</li>
-  <li> Microservizio per la ricerca: <b>ResearchService.py</b>: contiene le funzioni utile per impostare il problema di ricerca (da terminare)</li>
-  <li> Core del progetto: <b>Main.py</b>b> racchiude tutte le chiamate e il flusso generale del progetto</li>
-  <li> Per il testing uso le immagini che sono nella directory costum-test </li>
-</ol>
+<ul>
+<li><strong>Struttura del progetto</strong><br>
+Il progetto è stato strutturato orientato alla modularità quindi ogni funzione del sistema è richiamabile ed usabile separatamente dal flusso principale di esecuzione del progetto.
+</li>
 
-<h2> Istruzioni </h2>
-<p> Per il testing uso due vie, o quella di testare le funzioni in riga di comando pero c'è bisogno di importare tutte le librerie. Per facilitare il lavoro basta incollare questo script nel terminale della cartella del progetto: </p>
-<h3> mandare il comando "python" poi copiare e incollare nel terminale questo script </h3>
-----------------------------------------------------------<br>
-from PIL import Image <br>
-import numpy as np <br>
-import tensorflow as tf <br>
-import matplotlib.pyplot as plt<br>
-import cv2<br>
-import tempfile<br>
-import os<br>
-<br>
-import numpy as np<br>
-<br>
-<br>
-# %%<br>
-model = tf.keras.models.load_model('letter_recognition_model.h5')<br>
-<br>
-# %%<br>
-from AiTextExtractorService import AiTextExtractorService<br>
-from ResearchService import ColorGridProblem<br>
-from utils import *<br>
-from search import *<br>
-<br>
-# %%<br>
-estrattore = AiTextExtractorService(model, False)  <br>
---------------------------------------------------------<br>
+<li><strong>Librerie utilizzate:</strong>
+<ul>
+<li>Aima: search.py e utils.py</li>
+<li>PIL: manipolazione immagini</li>
+<li>numpy: calcolo numerico</li>
+<li>tensorflow: machine learning</li>
+<li>matplotlib: visualizzazione dei dati</li>
+<li>OpenCv (cv2): computer vision</li>
+<li>tempfile: file temporanei</li>
+</ul>
+</li>
 
-<p>Dopo di che puoi utilizzare tutte le funzioni di AiTextExtractorService e quindi testare le modifiche che fai alla funzione isolateLettersFromGrid cosi:</p>
+<li>Il progetto è suddiviso principalmente in tre parti:
+<ul>
+<li><strong>Training del modello:</strong>
+<ul>
+<li>training-modello.ipynb: file jupiter nootebook usato per tenere traccia del training</li>
+<li>letter_reconition_model.h5: modello vero e proprio</li>
+</ul>
+</li>
 
-<br>
-lettere, num_rows, num_columns = estrattore.runGridExtraction('costum-test/5x3.png')
-<br>
+<li><strong>Preprocessing immagine e implementazione modello:</strong>
+<ul>
+<li>AiTextExtractorService.py: classe che implementa tutte le funzioni di preprocessing, di mapping e dell’implementazione vera e propria del modello<br>
+Formata da:
+<ul>
+<li>mapPredictedClassToLetter( classValue ): utilizzata per mappare classe a lettera effettiva</li>
+<li>removeColorRange( img_array, start_hex, end_hex ): rimuove un certo range di colori ( non utilizzata )</li>
+<li>autoCropLetter(img_array): sfruttando la Computer Vision di OpenCv ritaglia l’immagine mantenendo le proporzioni della lettera e centrandola in un box quadrato, così da convertire successivamente in 28x28 per il modello</li>
+<li>analyzeImage( imagePath ): data un'immagine fisica, la trasforma in array di bit e con autoCropLetter ed altre operazioni di preprocessing che approfondiremo dopo, implementa il modello di classificazione per estrapolare la classe di una sola lettera</li>
+<li>isolateLettersFromGrid( image_path): partendo da un'immagine di una griglia, con OpenCv, riconosce i contorni delle lettere e riesce a restituire un array lettere con numero di righe e numero di colonne individuate</li>
+<li>predictGridLetters( isolatedLetters ): prendendo l’array di lettere, usando file temporanei, ritorna l’array di classi (lettere estratte) utilizzando analyzeImage</li>
+<li>runGridExtraction( image_path ): riassume tutte le funzioni della classe</li>
+</ul>
+</li>
+</ul>
+</li>
 
-<p> runGridExtraction esegue isolateLettersFromGrid </p>
+<li><strong>Conversione griglia estratta in problema di ricerca Aima</strong>
+<ul>
+<li>GridProblem.py: classe che definisce tutte gli attributi e le funzioni utili per la creazione di un search problem Aima<br>
+initial: contiene l’initial state ed è una tupla formata da una tupla con la griglia e una tupla con le coordinate<br>
+goal_color: il colore con cui colorare tutta la griglia che può essere un colore della griglia oppure ‘a’ che prende il colore con più occorrenze, a prescindere dal costo<br>
+start_position: una tupla con le coordinate<br>
+color_cost: impostazione dei costi dei colori nell’ordine g, y, b<br>
+rows: numero righe<br>
+cols: numero colonne<br>
+letters: array raw delle lettere<br>
+actions( state ): definizione delle azioni<br>
+result ( state, action ): ritorna il nuovo stato data un azione<br>
+goal_test ( state ): riconosce se lo stato è quello goal<br>
+path_cost (c, action): ritorna il costo in base all’attributo color_cost, assegna un costo ad ogni paint di un colore specifico<br>
+h (node): definizione di un euristica
+</li>
+</ul>
+</li>
+</ul>
+</li>
+
+<li><strong>Classe principale che contiene l’esecuzione del programma:</strong><br>
+La classe main contiene l’istanza delle varie classi descritte prima, l’import delle classi di Aima per la ricerca, simulazioni delle varie ricerche e stampe sull’andamento di ogni singola ricerca.
+</li>
+
+<li>Directory con tutte le varie immagini ricavate durante i processi</li>
+</ul>
+
