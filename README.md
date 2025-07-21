@@ -1,3 +1,14 @@
+<p> Per l'esecuzione sono richieste le seguenti librerie <br>
+
+pip install scipy<br>
+pip install matplotlib<br>
+pip install numpy<br>
+pip install tensorflow<br>
+pip install PIL<br>
+pip install opencv-python-headless<br>
+pip install image io<br>
+</p>
+
 <ul>
 <li><strong>Struttura del progetto</strong><br>
 Il progetto è stato strutturato orientato alla modularità quindi ogni funzione del sistema è richiamabile ed usabile separatamente dal flusso principale di esecuzione del progetto.
