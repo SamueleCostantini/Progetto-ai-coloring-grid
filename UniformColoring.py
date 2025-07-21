@@ -13,6 +13,8 @@ import matplotlib.pyplot as plt
 import cv2
 import tempfile
 import os
+import time
+
 
 
 import numpy as np
@@ -66,6 +68,7 @@ print(grid)
 
 solution = depth_first_graph_search(gridProblem)
 
+
 # Print andamento della ricerca e soluzione
 if solution:
     print("Solution found!")
@@ -82,7 +85,10 @@ else:
     print("No solution found.")
 
 # Uninformed search: Depth-First Search
+start = time.time()
 dfs_solution = depth_first_graph_search(gridProblem)
+end = time.time()
+print(f"Tempo di esecuzione: {end - start:.6f} secondi")
 if dfs_solution:
     dfs_actions = dfs_solution.solution()
     print("DFS Solution (actions):", dfs_actions)
@@ -92,7 +98,10 @@ else:
     print("No DFS solution found.")
 
 # Informed search: Uniform Cost Search
+start = time.time()
 ucs_solution = uniform_cost_search(gridProblem)
+end = time.time()
+print(f"Tempo di esecuzione: {end - start:.6f} secondi")
 if ucs_solution:
     ucs_actions = ucs_solution.solution()
     print("UCS Solution (actions):", ucs_actions)
@@ -163,7 +172,10 @@ def goal_test(self, state):
 # --- Ricerca con A* (A-Star Search) ---
 print("\n--- Esecuzione di A* Search ---")
 # La funzione a_star_search utilizzerà automaticamente il metodo `h` definito in GridProblem
+start = time.time()
 astar_solution = astar_search(gridProblem)
+end = time.time()
+print(f"Tempo di esecuzione: {end - start:.6f} secondi")
 if astar_solution:
     astar_actions = astar_solution.solution()
     print("Soluzione A* (azioni):", astar_actions)
@@ -175,7 +187,10 @@ else:
 
 # --- Ricerca con Uniform Cost Search (per confronto) ---
 print("\n--- Esecuzione di Uniform Cost Search ---")
+start = time.time()
 ucs_solution = uniform_cost_search(gridProblem)
+end = time.time()
+print(f"Tempo di esecuzione: {end - start:.6f} secondi")
 if ucs_solution:
     ucs_actions = ucs_solution.solution()
     print("Soluzione UCS (azioni):", ucs_actions)
@@ -230,8 +245,10 @@ print("\n--- Esecuzione di Greedy Best-First Search ---")
 
 # La ricerca "ingorda" usa solo la funzione euristica h(n)
 # La funzione è già definita in GridProblem, quindi AIMA la userà automaticamente
-
+start = time.time()
 gbfs_solution = best_first_graph_search(gridProblem, f=gridProblem.h)
+end = time.time()
+print(f"Tempo di esecuzione: {end - start:.6f} secondi")
 
 if gbfs_solution:
     gbfs_actions = gbfs_solution.solution()
