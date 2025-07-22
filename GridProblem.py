@@ -42,7 +42,7 @@ class GridProblem(Problem):
 
         # Azione di colorazione solo se la cella non è colorata e non è la posizione iniziale
         if grid[x][y] != self.goal_color and (x, y) != self.start_position:
-            actions.append('Paint')  # Aggiungi l'azione di pittura
+            actions.append('Paint')  # Aggiunge l'azione di paint
 
         return actions
 
