@@ -30,7 +30,7 @@ from utils import *
 from search import *
 
 # %%
-estrattore = AiTextExtractorService(model, False)
+estrattore = AiTextExtractorService(model, True)
 
 #estrattore.analyzeImage('output_letters/letter_1_3.png')
 
