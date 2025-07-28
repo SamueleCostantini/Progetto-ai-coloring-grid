@@ -30,11 +30,11 @@ from utils import *
 from search import *
 
 # %%
-estrattore = AiTextExtractorService(model, True)
+estrattore = AiTextExtractorService(model, False)
 
 #estrattore.analyzeImage('output_letters/letter_1_3.png')
 
-letters, rows, cols = estrattore.runGridExtraction('costum-test/griglia1x.png')
+letters, rows, cols = estrattore.runGridExtraction('costum-test/griglia5x.png')
 
 print(letters)
 print(rows)
@@ -46,10 +46,11 @@ if len(letters) != rows * cols:
 grid = []
 for i in range(rows):
     row = letters[i * cols:(i + 1) * cols]
-    # Converte la riga in stringa perche GridProblem si aspetta tuple di stringhe
-    grid.append("".join(row))
-
-initial_state = (tuple(grid), (0, 0))
+    grid.append(row)
+print(grid)
+# Convert grid to tuple of tuples for hashability
+tuple_grid = tuple(tuple(row) for row in grid)
+initial_state = (tuple_grid, (0, 0))
 gridProblem = GridProblem(
     initial=initial_state,
     goal_color='a',
@@ -164,6 +165,12 @@ def goal_test(self, state):
     t_count = sum(cell == 'T' for row in grid for cell in row)
     t_at_start = grid[self.start_position[0]][self.start_position[1]] == 'T'
     return all_colored and is_at_start and t_count == 1 and t_at_start
+
+print("\n --- Esecuzione di DFS ---")
+
+
+
+print("\n --- Esecuzione di UFS ---")
 
 
 

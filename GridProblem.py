@@ -41,8 +41,16 @@ class GridProblem(Problem):
             actions.append('Right')
 
         # Azione di colorazione solo se la cella non è colorata e non è la posizione iniziale
-        if grid[x][y] != self.goal_color and (x, y) != self.start_position:
-            actions.append('Paint')  # Aggiunge l'azione di paint
+        if grid[x][y] != 'g':
+            actions.append('Paint green')  # Aggiunge l'azione di paint
+        
+        if grid[x][y] != 'y':
+            actions.append('Paint yellow')  # Aggiunge l'azione di paint
+
+        if grid[x][y] != 'b':
+            actions.append('Paint blue')  # Aggiunge l'azione di paint
+
+
 
         return actions
 
@@ -50,42 +58,84 @@ class GridProblem(Problem):
         grid, (x, y) = state
         new_grid = [list(row) for row in grid]  # Copia della griglia
 
-        # Movimenti
-        if action == 'Up':
-            new_position = (x - 1, y)
-        elif action == 'Down':
-            new_position = (x + 1, y)
-        elif action == 'Left':
-            new_position = (x, y - 1)
-        elif action == 'Right':
-            new_position = (x, y + 1)
-        elif action == 'Paint':
-            new_grid[x][y] = self.goal_color
-            new_position = (x, y)
-        else:
-            new_position = (x, y)
-
-        # Rimuove la 'T' da tutta la griglia
+        # Rimuovi 'T' da tutta la griglia
         for i in range(self.rows):
             for j in range(self.cols):
                 if new_grid[i][j] == 'T':
                     new_grid[i][j] = self.goal_color
-        # Mette la 'T' nella nuova posizione
-        new_grid[new_position[0]][new_position[0]] = 'T'
-        return (tuple("".join(row) for row in new_grid), new_position)
+
+        # Movimenti
+        if action == 'Up':
+            new_position = (x - 1, y)
+            new_grid[new_position[0]][new_position[1]] = 'T'
+        elif action == 'Down':
+            new_position = (x + 1, y)
+            new_grid[new_position[0]][new_position[1]] = 'T'
+        elif action == 'Left':
+            new_position = (x, y - 1)
+            new_grid[new_position[0]][new_position[1]] = 'T'
+        elif action == 'Right':
+            new_position = (x, y + 1)
+            new_grid[new_position[0]][new_position[1]] = 'T'
+        elif action == 'Paint green':
+            new_grid[x][y] = 'g'
+            new_position = (x, y)
+        elif action == 'Paint blue':
+            new_grid[x][y] = 'b'
+            new_position = (x, y)
+        elif action == 'Paint yellow':
+            new_grid[x][y] = 'y'
+            new_position = (x, y)
+        else:
+            new_position = (x, y)
+            # Non serve gestire goal_color qui, lo stato goal è che tutte le celle abbiano lo stesso colore
+        # Rimuove la 'T' da tutta la griglia
+        """for i in range(self.rows):
+            for j in range(self.cols):
+                if new_grid[i][j] == 'T':
+                    new_grid[i][j] = self.goal_color
+
+        # Trova il colore più conveniente (costo minimo)
+        min_cost = min(self.color_costs)
+        color_to_index = {0: 'g', 1: 'y', 2: 'b'}
+        best_color = color_to_index[self.color_costs.index(min_cost)]
+
+        # Mette la 'T' nella nuova posizione e colora con il colore più conveniente"""
+        #new_grid[new_position[0]][new_position[1]] = 'T'
+        #new_grid[new_position[0]][new_position[1]] = best_color
+
+        return (tuple(tuple(row) for row in new_grid), new_position)
 
     def goal_test(self, state):
         grid, position = state
-        # Verifica che tutte le celle siano colorate e che la testina sia nella posizione iniziale
-        all_colored = all(cell == self.goal_color for row in grid for cell in row if cell != 'T')  # Tutte le celle sono colorate
-        is_at_start = position == self.start_position  # La testina è nella posizione iniziale
-        return all_colored and is_at_start
+        # Ottieni il colore della prima cella (escludendo 'T' se presente)
+        first_color = None
+        for row in grid:
+            for cell in row:
+                if cell != 'T':
+                    first_color = cell
+                    break
+            if first_color:
+                break
+        # Verifica che tutte le celle (escludendo 'T') abbiano lo stesso colore
+        all_same_color = all(cell == first_color for row in grid for cell in row )
+        return all_same_color
 
     def path_cost(self, c, state1, action, state2):  # Calcola il costo del percorso
         # Ogni movimento e ogni pittura hanno un costo
         if action in ['Up', 'Down', 'Left', 'Right']:
             return c + 1
-        elif action == 'Paint':
+        elif action == 'Paint green':
+            # Map color string to index for color_costs
+            color_to_index = {'g': 0, 'y': 1, 'b': 2}
+            color_index = color_to_index.get(self.goal_color, 0)
+            return c + self.color_costs[color_index]
+        elif action == 'Paint yellow':
+            # Map color string to index for color_costs
+            color_to_index = {'g': 0, 'y': 1, 'b': 2}
+            color_index = color_to_index.get(self.goal_color, 0)
+            return c + self.color_costs[color_index]
+        elif action == 'Paint blue':
             # Map color string to index for color_costs
             color_to_index = {'g': 0, 'y': 1, 'b': 2}
             color_index = color_to_index.get(self.goal_color, 0)
