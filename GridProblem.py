@@ -40,14 +40,12 @@ class GridProblem(Problem):
         if y < cols - 1:
             actions.append('Right')
 
-        # Azione di colorazione solo se la cella non è colorata e non è la posizione iniziale
-        actions.append('Paint green')  # Aggiunge l'azione di paint
-        
-        actions.append('Paint yellow')  # Aggiunge l'azione di paint
-
-        actions.append('Paint blue')  # Aggiunge l'azione di paint
-
-
+        if grid[x][y] != 'g':
+            actions.append('Paint green')  # Aggiunge l'azione di paint
+        if grid[x][y] != 'y':
+            actions.append('Paint yellow')
+        if grid[x][y] != 'b':
+            actions.append('Paint blue')  # Aggiunge l'azione di paint
 
         return actions
 
@@ -85,7 +83,6 @@ class GridProblem(Problem):
             #new_position = (x, y)
         else:
             new_position = (x, y)
-
         #print(f"Action: {action}, New Position: {new_position}, New Grid: {new_grid}")
         return (tuple(tuple(row) for row in new_grid), new_position)
 
@@ -128,12 +125,19 @@ class GridProblem(Problem):
     def h(self, node):   #Euristica per la ricerce
        # Calcola l'euristica come il numero di celle non colorate con il colore goal
        grid, _ = node.state
-       uncolored_cells = 0
+       uncolored_cells_min = 0
+       count_y = 0 
+       count_g = 0
+       count_b = 0
        # Itera su ogni cella della griglia
        for r in range(self.rows):
            for c in range(self.cols):
-               # Conta la cella solo se non è la posizione iniziale e non ha il colore obiettivo
-               if (r, c) != self.start_position and grid[r][c] != self.goal_color:
-                   uncolored_cells += 1
-       return uncolored_cells
+                cell = grid[r][c]
+                if cell == 'g':
+                    count_g += 1
+                elif cell == 'y':
+                    count_y += 1
+                elif cell == 'b':
+                    count_b += 1               
+       return min(count_b*1, count_y*2, count_g*3)  
     

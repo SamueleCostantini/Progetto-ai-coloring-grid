@@ -34,7 +34,7 @@ estrattore = AiTextExtractorService(model, False)
 
 #estrattore.analyzeImage('output_letters/letter_1_3.png')
 
-letters, rows, cols = estrattore.runGridExtraction('costum-test/griglia1x.png')
+letters, rows, cols = estrattore.runGridExtraction('costum-test/griglia21.png')
 
 print(letters)
 print(rows)
@@ -115,28 +115,22 @@ def simulate_plan(initial_state, solution, nameGif):
 print("\n\n\n")
 
 
-dfs_solution = depth_first_graph_search(gridProblem)
-
-astar_solution = astar_search(gridProblem)
-
 ucs_solution = uniform_cost_search(gridProblem)
-
-gbfs_solution = best_first_graph_search(gridProblem, f=gridProblem.h)
-
 if ucs_solution:
    print("Soluzione trovata con UCS:")
    simulate_plan(gridProblem.initial, ucs_solution, 'ucs')
 
-if dfs_solution:
-   print("Soluzione trovata con DFS:")
-   simulate_plan(gridProblem.initial, dfs_solution, 'dfs')
-
+gbfs_solution = best_first_graph_search(gridProblem, f=gridProblem.h)
 if gbfs_solution:
     print("Soluzione trovata con GBFS:")
     simulate_plan(gridProblem.initial, gbfs_solution, 'gbfs')
-
+astar_solution = astar_search(gridProblem)
 if astar_solution:
     print("Soluzione trovata con A*:")
     simulate_plan(gridProblem.initial, astar_solution, 'astar')
 
+dfs_solution = depth_first_graph_search(gridProblem)
+if dfs_solution:
+   print("Soluzione trovata con DFS:")
+   simulate_plan(gridProblem.initial, dfs_solution, 'dfs')
 
