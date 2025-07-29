@@ -41,14 +41,11 @@ class GridProblem(Problem):
             actions.append('Right')
 
         # Azione di colorazione solo se la cella non è colorata e non è la posizione iniziale
-        if grid[x][y] != 'g':
-            actions.append('Paint green')  # Aggiunge l'azione di paint
+        actions.append('Paint green')  # Aggiunge l'azione di paint
         
-        if grid[x][y] != 'y':
-            actions.append('Paint yellow')  # Aggiunge l'azione di paint
+        actions.append('Paint yellow')  # Aggiunge l'azione di paint
 
-        if grid[x][y] != 'b':
-            actions.append('Paint blue')  # Aggiunge l'azione di paint
+        actions.append('Paint blue')  # Aggiunge l'azione di paint
 
 
 
@@ -59,51 +56,37 @@ class GridProblem(Problem):
         new_grid = [list(row) for row in grid]  # Copia della griglia
 
         # Rimuovi 'T' da tutta la griglia
-        for i in range(self.rows):
-            for j in range(self.cols):
-                if new_grid[i][j] == 'T':
-                    new_grid[i][j] = self.goal_color
+       
+        """if new_grid[x][y].endswith('T'):
+            new_grid[x][y].replace('T', '')"""
 
+        new_position = (x, y)
         # Movimenti
         if action == 'Up':
             new_position = (x - 1, y)
-            new_grid[new_position[0]][new_position[1]] = 'T'
+            #new_grid[new_position[0]][new_position[1]] = 'T'
         elif action == 'Down':
             new_position = (x + 1, y)
-            new_grid[new_position[0]][new_position[1]] = 'T'
+            #new_grid[new_position[0]][new_position[1]] = 'T'
         elif action == 'Left':
             new_position = (x, y - 1)
-            new_grid[new_position[0]][new_position[1]] = 'T'
+            #new_grid[new_position[0]][new_position[1]] = 'T'
         elif action == 'Right':
             new_position = (x, y + 1)
-            new_grid[new_position[0]][new_position[1]] = 'T'
+            #new_grid[new_position[0]][new_position[1]] = 'T'
         elif action == 'Paint green':
             new_grid[x][y] = 'g'
-            new_position = (x, y)
+            #new_position = (x, y)
         elif action == 'Paint blue':
             new_grid[x][y] = 'b'
-            new_position = (x, y)
+            #new_position = (x, y)
         elif action == 'Paint yellow':
             new_grid[x][y] = 'y'
-            new_position = (x, y)
+            #new_position = (x, y)
         else:
             new_position = (x, y)
-            # Non serve gestire goal_color qui, lo stato goal è che tutte le celle abbiano lo stesso colore
-        # Rimuove la 'T' da tutta la griglia
-        """for i in range(self.rows):
-            for j in range(self.cols):
-                if new_grid[i][j] == 'T':
-                    new_grid[i][j] = self.goal_color
 
-        # Trova il colore più conveniente (costo minimo)
-        min_cost = min(self.color_costs)
-        color_to_index = {0: 'g', 1: 'y', 2: 'b'}
-        best_color = color_to_index[self.color_costs.index(min_cost)]
-
-        # Mette la 'T' nella nuova posizione e colora con il colore più conveniente"""
-        #new_grid[new_position[0]][new_position[1]] = 'T'
-        #new_grid[new_position[0]][new_position[1]] = best_color
-
+        #print(f"Action: {action}, New Position: {new_position}, New Grid: {new_grid}")
         return (tuple(tuple(row) for row in new_grid), new_position)
 
     def goal_test(self, state):
@@ -127,20 +110,19 @@ class GridProblem(Problem):
             return c + 1
         elif action == 'Paint green':
             # Map color string to index for color_costs
-            color_to_index = {'g': 0, 'y': 1, 'b': 2}
-            color_index = color_to_index.get(self.goal_color, 0)
-            return c + self.color_costs[color_index]
+            #color_to_index = {'g': 0, 'y': 1, 'b': 2}
+            #color_index = color_to_index.get(self.goal_color, 0)
+            return c + 3
         elif action == 'Paint yellow':
             # Map color string to index for color_costs
-            color_to_index = {'g': 0, 'y': 1, 'b': 2}
-            color_index = color_to_index.get(self.goal_color, 0)
-            return c + self.color_costs[color_index]
+            #color_to_index = {'g': 0, 'y': 1, 'b': 2}
+            #color_index = color_to_index.get(self.goal_color, 0)
+            return c + 2
         elif action == 'Paint blue':
             # Map color string to index for color_costs
-            color_to_index = {'g': 0, 'y': 1, 'b': 2}
-            color_index = color_to_index.get(self.goal_color, 0)
-            return c + self.color_costs[color_index]
-        else:
+           # color_to_index = {'g': 0, 'y': 1, 'b': 2}
+           # color_index = color_to_index.get(self.goal_color, 0)
+            return c + 1
             return c
 
     def h(self, node):   #Euristica per la ricerce

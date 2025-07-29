@@ -34,7 +34,7 @@ estrattore = AiTextExtractorService(model, False)
 
 #estrattore.analyzeImage('output_letters/letter_1_3.png')
 
-letters, rows, cols = estrattore.runGridExtraction('costum-test/griglia5x.png')
+letters, rows, cols = estrattore.runGridExtraction('costum-test/griglia1x.png')
 
 print(letters)
 print(rows)
@@ -79,6 +79,7 @@ def simulate_plan(initial_state, solution, nameGif):
         print("Soluzione (azioni):", actions)
         print("Lunghezza soluzione: ", len(actions))
         print("Costo soluzione:", solution.path_cost)
+        print("Tempo di esecuzione:", solution.time if hasattr(solution, 'time') else "Non disponibile")
     else:
         print("Nessuna soluzione")
     print("\n__________________________________________________________\n\n")
@@ -89,30 +90,32 @@ def simulate_plan(initial_state, solution, nameGif):
         grids.append(state[0])
 
     images = []
-    for idx, grid in enumerate(grids):
+    for idx, (grid, action) in enumerate(zip(grids, [None] + actions)):
         fig, ax = plt.subplots(figsize=(len(grid[0]), len(grid)))
         ax.axis('off')
         # Disegna la tabella della griglia
         table_data = [[cell for cell in row] for row in grid]
         ax.table(cellText=table_data, loc='center', cellLoc='center', edges='closed')
+        # Aggiungi il nome dell'azione in basso
+        if action is not None:
+            plt.figtext(0.5, 0.01, f"Azione: {action}", ha='center', fontsize=12)
+        else:
+            plt.figtext(0.5, 0.01, "Stato iniziale", ha='center', fontsize=12)
         plt.tight_layout()
         # Salva in PNG temporaneo
         fname = f'{output_dir}/_sim_grid_{idx}.png'
         plt.savefig(fname, bbox_inches='tight', pad_inches=0.1)
         plt.close(fig)
         images.append(imageio.imread(fname))
-        #os.remove(fname)
+        os.remove(fname)
 
     # Salva la GIF
-    imageio.mimsave(f'{output_dir}/{nameGif}.gif', images, duration=0.8)
+    imageio.mimsave(f'{output_dir}/{nameGif}.gif', images, format='GIF', fps=2)
 
 print("\n\n\n")
 
-solution = depth_first_graph_search(gridProblem)
 
 dfs_solution = depth_first_graph_search(gridProblem)
-
-ucs_solution = uniform_cost_search(gridProblem)
 
 astar_solution = astar_search(gridProblem)
 
@@ -136,7 +139,4 @@ if astar_solution:
     print("Soluzione trovata con A*:")
     simulate_plan(gridProblem.initial, astar_solution, 'astar')
 
-if ucs_solution:
-    print("Soluzione trovata con UCS:")
-    simulate_plan(gridProblem.initial, ucs_solution, 'ucs')
 
